@@ -1,4 +1,4 @@
-# Nome do jogo
+# Jet Fighter
 
 ## Sobre
 Um jogo multiplayer desenvolvido em C++, utilizando OpenGL juntamente com a biblioteca ABCg, para a disciplina de Computação Gráfica. Turma A1, diurno (DA1MCTA008-17SA), 3º quadrimestre de 2021.
