@@ -4,6 +4,7 @@
 #include <glm/fwd.hpp>
 #include <glm/gtx/fast_trigonometry.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+
 #include "gamedata.hpp"
 
 void Ship::initializeGL(GLuint _program) {
@@ -15,7 +16,8 @@ void Ship::initializeGL(GLuint _program) {
   ul_scale = abcg::glGetUniformLocation(gl_program, "scale");
   ul_translation = abcg::glGetUniformLocation(gl_program, "translation");
 
-  color = player_number == 1 ? glm::vec4{1, 0, 0, 1} : glm::vec4{0, 0.4, 1, 1};
+  color = player_name == PlayerName::Red ? glm::vec4{1, 0, 0, 1}
+                                         : glm::vec4{0, 0.4, 1, 1};
 
   std::array<glm::vec2, 4> positions{
       // Ship body
@@ -57,13 +59,13 @@ void Ship::initializeGL(GLuint _program) {
 }
 
 void Ship::restart() {
-    life = 3;
-    translation = player_number == 1 ? glm::vec2(-0.5, 0) : glm::vec2(0.5, 0);
-    rotation = 0.0f;
-    velocity = glm::vec2(0);
-    isImmune = false;
-    immunityTimer.restart();
-    bulletCoolDownTimer.restart();
+  life = 3;
+  translation = player_name == PlayerName::Red ? glm::vec2(-0.5, 0) : glm::vec2(0.5, 0);
+  rotation = 0.0f;
+  velocity = glm::vec2(0);
+  is_immune = false;
+  immunity_timer.restart();
+  bullet_cooldown_timer.restart();
 }
 
 void Ship::paintGL() {
@@ -75,8 +77,8 @@ void Ship::paintGL() {
   abcg::glUniform1f(ul_rotation, rotation);
   abcg::glUniform2fv(ul_translation, 1, &translation.x);
 
-  if (isImmune && immunityTimer.elapsed() < 2) {
-    if (fmod(immunityTimer.elapsed(), 0.1) < 0.05) {
+  if (is_immune && immunity_timer.elapsed() < 2) {
+    if (fmod(immunity_timer.elapsed(), 0.1) < 0.05) {
       return;
     }
   }
@@ -100,24 +102,21 @@ void Ship::terminateGL() {
 }
 
 void Ship::hit() {
-  if (isImmune) return;
+  if (is_immune) return;
   life--;
-  isImmune = true;
-  immunityTimer.restart();
+  is_immune = true;
+  immunity_timer.restart();
 }
 
-void Ship::update(const GameData &gameData, float deltaTime) {
-  auto input = player_number == 1 ? gameData.red_input : gameData.blu_input;
-  if (gameData.state == State::Playing) {
-    if (input[static_cast<size_t>(Input::Left)])
-      rotation = glm::wrapAngle(rotation + 4.0f * deltaTime);
-    if (input[static_cast<size_t>(Input::Right)])
-      rotation = glm::wrapAngle(rotation - 4.0f * deltaTime);
+void Ship::update(PlayerInput &input, float deltaTime) {
+  if (input[static_cast<size_t>(Input::Left)])
+    rotation = glm::wrapAngle(rotation + 4.0f * deltaTime);
+  if (input[static_cast<size_t>(Input::Right)])
+    rotation = glm::wrapAngle(rotation - 4.0f * deltaTime);
 
-    glm::vec2 forward = glm::rotate(glm::vec2{0.0f, 1.0f}, rotation);
-    velocity = forward * 0.5f;
-    translation += velocity * deltaTime;
-  }
+  glm::vec2 forward = glm::rotate(glm::vec2{0.0f, 1.0f}, rotation);
+  velocity = forward * 0.5f;
+  translation += velocity * deltaTime;
 
   // Wrap-around
   if (translation.x < -1.0f) translation.x += 2.0f;
@@ -125,7 +124,7 @@ void Ship::update(const GameData &gameData, float deltaTime) {
   if (translation.y < -1.0f) translation.y += 2.0f;
   if (translation.y > +1.0f) translation.y -= 2.0f;
 
-  if (immunityTimer.elapsed() > 2) {
-    isImmune = false;
+  if (immunity_timer.elapsed() > 2) {
+    is_immune = false;
   }
 }

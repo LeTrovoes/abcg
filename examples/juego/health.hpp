@@ -15,17 +15,16 @@ class Health {
   void update();
 
  private:
-
   friend OpenGLWindow;
 
-  GLuint program{};
-  GLint translationLoc{};
-  GLint colorLoc{};
-  GLint scaleLoc{};
-  GLint rotationLoc{};
+  GLuint gl_program{};
+  GLuint gl_vao{};
+  GLuint gl_vbo{};
 
-  GLuint vao{};
-  GLuint vbo{};
+  GLint ul_translation{};
+  GLint ul_rotation{};
+  GLint ul_scale{};
+  GLint ul_color{};
 
   glm::vec4 color{0, 0.5, 1, 1};
   float rotation{};
@@ -33,4 +32,5 @@ class Health {
   glm::vec2 translation{glm::vec2(0)};
   glm::vec2 velocity{glm::vec2(0)};
 };
+
 #endif

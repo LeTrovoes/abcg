@@ -4,13 +4,15 @@
 #include <bitset>
 
 enum class Input { Right, Left, Fire };
-enum class State { Playing, Winner_Red, Winner_Blu, Draw};
+enum class State { Playing, Winner_Red, Winner_Blu, Draw };
 enum class PlayerName { Red, Blu };
+
+using PlayerInput = std::bitset<3>;  // [fire, left, right]
 
 struct GameData {
   State state{State::Playing};
-  std::bitset<3> red_input;  // [fire, left, right]
-  std::bitset<3> blu_input;  // [fire, left, right]
+  PlayerInput red_input;
+  PlayerInput blu_input;
 };
 
 #endif

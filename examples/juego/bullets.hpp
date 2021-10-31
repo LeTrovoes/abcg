@@ -16,6 +16,7 @@ class Bullets {
   void terminateGL();
 
   void update(Ship &ship, GameData &gamedata, float deltaTime, PlayerName);
+  void restart();
 
  private:
   friend OpenGLWindow;
@@ -24,10 +25,10 @@ class Bullets {
   GLuint gl_vao{};
   GLuint gl_vbo{};
 
-  GLint ul_color{};
-  GLint ul_rotation{};
   GLint ul_translation{};
+  GLint ul_rotation{};
   GLint ul_scale{};
+  GLint ul_color{};
 
   struct Bullet {
     bool dead{};

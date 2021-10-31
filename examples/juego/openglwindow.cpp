@@ -12,15 +12,12 @@
 #include "gamedata.hpp"
 
 void OpenGLWindow::initializeGL() {
-
-  // Load a new font
   ImGuiIO &io{ImGui::GetIO()};
   const auto filename{getAssetsPath() + "Inconsolata-Medium.ttf"};
   font = io.Fonts->AddFontFromFileTTF(filename.c_str(), 60.0f);
   if (font == nullptr) {
     throw abcg::Exception{abcg::Exception::Runtime("Cannot load font file")};
   }
-
 
   auto windowSettings{getWindowSettings()};
   fmt::print("Initial window size: {}x{}\n", windowSettings.width,
@@ -35,11 +32,11 @@ void OpenGLWindow::initializeGL() {
 
   health.initializeGL(healthProgram);
 
-  red_ship.player_number = 1;
+  red_ship.player_name = PlayerName::Red;
   red_bullets.initializeGL(gl_objects_program);
   red_ship.initializeGL(gl_objects_program);
 
-  blu_ship.player_number = 2;
+  blu_ship.player_name = PlayerName::Blu;
   blu_bullets.initializeGL(gl_objects_program);
   blu_ship.initializeGL(gl_objects_program);
 
@@ -51,12 +48,12 @@ void OpenGLWindow::paintGL() {
   abcg::glClear(GL_COLOR_BUFFER_BIT);
 
   red_bullets.paintGL();
-  if (red_ship.life > 0) {;
+  if (red_ship.life > 0) {
     red_ship.paintGL();
   }
 
   blu_bullets.paintGL();
-  if (blu_ship.life > 0) {;
+  if (blu_ship.life > 0) {
     blu_ship.paintGL();
   }
 
@@ -115,21 +112,21 @@ void OpenGLWindow::paintUI() {
 }
 
 void OpenGLWindow::update() {
+  if (gameData.state != State::Playing) return;
+
   const float deltaTime{static_cast<float>(getDeltaTime())};
 
   red_bullets.update(red_ship, gameData, deltaTime, PlayerName::Red);
   blu_bullets.update(blu_ship, gameData, deltaTime, PlayerName::Blu);
 
-  red_ship.update(gameData, deltaTime);
-  blu_ship.update(gameData, deltaTime);
+  red_ship.update(gameData.red_input, deltaTime);
+  blu_ship.update(gameData.blu_input, deltaTime);
 
   checkColisions();
   checkWinners();
 }
 
 void OpenGLWindow::checkColisions() {
-  if (gameData.state != State::Playing) return;
-
   /* Check if player1 hit player2 */
   for (auto &bullet : red_bullets.bullets) {
     auto distance = glm::distance(bullet.translation, blu_ship.translation);
@@ -219,6 +216,9 @@ void OpenGLWindow::restart() {
 
   red_ship.restart();
   blu_ship.restart();
+
+  red_bullets.restart();
+  blu_bullets.restart();
 
   gameData.state = State::Playing;
 }

@@ -3,7 +3,7 @@
 ## Sobre
 Um jogo multiplayer desenvolvido em C++, utilizando OpenGL juntamente com a biblioteca ABCg, para a disciplina de Computação Gráfica. Turma A1, diurno (DA1MCTA008-17SA), 3º quadrimestre de 2021.
 
-O jogo consiste em duas naves, uma vermelha e outra azul, que devem atirar uma na outra, sendo a vencedora aquela que acertar três tiros primeiro.
+O jogo, inspirado em Jet Fighter (1975), consiste em duas naves, uma vermelha e outra azul, que devem atirar uma na outra, sendo a vencedora aquela que acertar três tiros primeiro.
 
 As naves possuem velocidade constante, sendo utilizadas as teclas "A", "D", e setas para esquerda e direita do teclado para redirecioná-las. Além disso, as teclas "W" e seta direcional para cima são usadas para efetuar disparos.
 
