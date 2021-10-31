@@ -25,4 +25,4 @@ O mundo é constituído por um espaço finito e estacionário. Ao sair pelas bor
 Foram utilizados os eventos da SDL para detectar as entradas do teclado que controlam as naves.
 
 ### UI
-Para a interface gráfica, composta pela mensagem do vencedor e o botão de reiniciar, foi feita com a biblioteca *Dear ImGui*.
+A interface gráfica, composta pela mensagem da nave vencedora e o botão de reiniciar, foi feita com a biblioteca *Dear ImGui*.
