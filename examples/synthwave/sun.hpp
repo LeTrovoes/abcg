@@ -1,30 +1,24 @@
 #ifndef SUN_HPP_
 #define SUN_HPP_
 
-#include <array>
-#include <glm/fwd.hpp>
-#include <vector>
-
 #include "abcg.hpp"
+#include "scene_element.hpp"
 
 class OpenGLWindow;
-
-class Sun {
+class Sun : public SceneElement {
  public:
-  void initializeGL(GLuint program);
-  void paintGL();
-  void terminateGL();
-
-  void update(float deltaTime);
+  void initialize(GLuint program) override;
+  void paint() override;
+  void terminate() override;
 
  private:
   friend OpenGLWindow;
 
-  GLint m_modelMatrixLoc{};
-  GLint m_colorLoc{};
+  GLuint vao{};
+  GLuint vbo{};
 
-  GLuint m_vao{};
-  GLuint m_vbo{};
+  GLint ul_model_matrix{};
+  GLint ul_color{};
 
   int steps{100};
 };

@@ -2,7 +2,7 @@
 
 #include <cppitertools/itertools.hpp>
 
-void Pyramid::initializeGL(GLuint program) {
+void Pyramid::initialize(GLuint program) {
   std::array vertices{
     glm::vec3(-2.22f, 0.0f, 0.0f),
     glm::vec3( 0.00f, 3.0f, 0.0f),
@@ -31,7 +31,7 @@ void Pyramid::initializeGL(GLuint program) {
   m_colorLoc = abcg::glGetUniformLocation(program, "color");
 }
 
-void Pyramid::paintGL() {
+void Pyramid::paint() {
   // Draw a grid of tiles centered on the xz plane
   abcg::glBindVertexArray(m_VAO);
 
@@ -46,7 +46,7 @@ void Pyramid::paintGL() {
   abcg::glBindVertexArray(0);
 }
 
-void Pyramid::terminateGL() {
+void Pyramid::terminate() {
   abcg::glDeleteBuffers(1, &m_VBO);
   abcg::glDeleteVertexArrays(1, &m_VAO);
 }

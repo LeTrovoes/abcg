@@ -2,12 +2,13 @@
 #define PYRAMID_HPP_
 
 #include "abcg.hpp"
+#include "scene_element.hpp"
 
-class Pyramid {
+class Pyramid : public SceneElement {
  public:
-  void initializeGL(GLuint program);
-  void paintGL();
-  void terminateGL();
+  void initialize(GLuint program) override;
+  void paint() override;
+  void terminate() override;
 
  private:
   GLuint m_VAO{};

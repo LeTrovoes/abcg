@@ -2,27 +2,30 @@
 #define GROUND_HPP_
 
 #include "abcg.hpp"
+#include "scene_element.hpp"
 
-class Ground {
+class Ground : public SceneElement {
  public:
-  void initializeGL(GLuint program);
-  void paintGL();
-  void terminateGL();
-  void update(float deltaTime);
+  void initialize(GLuint program) override;
+  void update(float deltaTime) override;
+  void paint() override;
+  void terminate() override;
 
  private:
-  GLuint grid_VAO{};
-  GLuint grid_VBO{};
+  void initializePlane(GLuint program);
+  GLuint plane_vao{};
+  GLuint plane_vbo{};
 
-  GLuint plane_VAO{};
-  GLuint plane_VBO{};
+  void initializeGrid(GLuint program);
+  GLuint grid_vao{};
+  GLuint grid_vbo{};
 
-  GLint m_modelMatrixLoc{};
-  GLint m_colorLoc{};
+  GLint ul_model_matrix{};
+  GLint ul_color{};
 
-  float translation{0};
-  float speed{1.0f};
-  float translation_limit{1};
+  float grid_translation{0};
+  float speed{1};
+  const float grid_spacing{1};
 };
 
 #endif

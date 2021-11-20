@@ -5,7 +5,7 @@
 #include "model.hpp"
 #include "ground.hpp"
 #include "pyramid.hpp"
-#include "rosa.hpp"
+#include "gradient.hpp"
 #include "stars.hpp"
 #include "sun.hpp"
 
@@ -13,28 +13,21 @@ class OpenGLWindow : public abcg::OpenGLWindow {
  protected:
   void initializeGL() override;
   void paintGL() override;
-  void paintUI() override;
   void resizeGL(int width, int height) override;
   void terminateGL() override;
 
  private:
-  friend Rosa;
+  GLuint program{};
 
-  GLuint m_program{};
+  int viewport_width{};
+  int viewport_height{};
 
-  int m_viewportWidth{};
-  int m_viewportHeight{};
-
-  Model m_model;
-  Ground m_ground;
-  Rosa m_rosa;
-  Pyramid m_pyramid;
-  Stars stars;
   Sun sun;
-  int m_trianglesToDraw{};
-
-  float m_p1{};
-  float m_p2{};
+  Stars stars;
+  Model model;
+  Ground ground;
+  Pyramid pyramid;
+  Gradient gradient;
 
   glm::mat4 m_modelMatrix{1.0f};
   glm::mat4 m_modelMatrix2{1.0f};
