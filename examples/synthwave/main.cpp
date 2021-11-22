@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
                                .height = 576,
                                .showFPS = false,
                                .showFullscreenButton = false,
-                               .title = "Synthwave Wallpaper"});
+                               .title = "Synthwave"});
 
     app.run(std::move(window));
   } catch (const abcg::Exception &exception) {
