@@ -24,10 +24,9 @@ void OpenGLWindow::initializeGL() {
   model.setupVAO(program);
   sun.initialize(program);
   ground.initialize(program);
-  pyramid.initialize(program);
 
-  GLuint gradient_program = createProgramFromFile(getAssetsPath() + "rosa.vert",
-                                              getAssetsPath() + "rosa.frag");
+  GLuint gradient_program = createProgramFromFile(getAssetsPath() + "gradient.vert",
+                                              getAssetsPath() + "gradient.frag");
   gradient.initialize(gradient_program);
 
   GLuint stars_program = createProgramFromFile(getAssetsPath() + "stars.vert",
@@ -98,7 +97,6 @@ void OpenGLWindow::terminateGL() {
   stars.terminate();
   model.terminateGL();
   ground.terminate();
-  pyramid.terminate();
   gradient.terminate();
   abcg::glDeleteProgram(program);
 }

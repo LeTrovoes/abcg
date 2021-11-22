@@ -4,7 +4,6 @@
 #include "abcg.hpp"
 #include "model.hpp"
 #include "ground.hpp"
-#include "pyramid.hpp"
 #include "gradient.hpp"
 #include "stars.hpp"
 #include "sun.hpp"
@@ -26,7 +25,6 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   Stars stars;
   Model model;
   Ground ground;
-  Pyramid pyramid;
   Gradient gradient;
 
   glm::mat4 m_modelMatrix{1.0f};
