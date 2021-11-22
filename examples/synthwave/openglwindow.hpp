@@ -27,10 +27,17 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   Ground ground;
   Gradient gradient;
 
-  glm::mat4 m_modelMatrix{1.0f};
-  glm::mat4 m_modelMatrix2{1.0f};
-  glm::mat4 m_viewMatrix{1.0f};
-  glm::mat4 m_projMatrix{1.0f};
+  GLint ul_view_matrix{};
+  GLint ul_proj_matrix{};
+  GLint ul_model_matrix{};
+  GLint ul_color{};
+  GLint ul_shadow_range{};
+  GLint ul_shadow_offset{};
+
+  glm::mat4 modelMatrixRight{1.0f};
+  glm::mat4 modelMatrixLeft{1.0f};
+  glm::mat4 viewMatrix{1.0f};
+  glm::mat4 projMatrix{1.0f};
 
   float rotation{0};
 
