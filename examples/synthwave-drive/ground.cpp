@@ -16,7 +16,8 @@ void Ground::paint() {
   const int N{50};
 
   abcg::glBindVertexArray(grid_vao);
-  abcg::glUniform4f(ul_color, 0.375, 0.520f, 0.621f, 1.0f);
+  // abcg::glUniform4f(ul_color, 0.375, 0.520f, 0.621f, 1.0f);
+  abcg::glUniform4f(ul_color, 0.616, 0.855f, 1.0f, 1.0f);
 
   // draw vertical lines
   for (const int i : iter::range(-N / 2, N / 2 + 1)) {
@@ -52,7 +53,7 @@ void Ground::paint() {
   glm::mat4 model{1.0f};
   abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE, &model[0][0]);
 
-  abcg::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  //abcg::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   abcg::glBindVertexArray(0);
 }
 
@@ -93,8 +94,8 @@ void Ground::initializePlane(GLuint program) {
 
 void Ground::initializeGrid(GLuint program) {
   std::array line_vertices{
-      glm::vec3(-30.0f, 0.01f, 0.03f), glm::vec3(30.0f, 0.01f, 0.03f),
-      glm::vec3(-30.0f, 0.01f, -0.03f), glm::vec3(30.0f, 0.01f, -0.03f)};
+      glm::vec3(-30.0f, 0.01f, 0.02f), glm::vec3(30.0f, 0.01f, 0.02f),
+      glm::vec3(-30.0f, 0.01f, -0.02f), glm::vec3(30.0f, 0.01f, -0.02f)};
 
   abcg::glGenBuffers(1, &grid_vbo);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, grid_vbo);

@@ -41,8 +41,11 @@ void OpenGLWindow::initializeGL() {
   program = createProgramFromFile(getAssetsPath() + "depth.vert",
                                   getAssetsPath() + "depth.frag");
 
-  program_blinnphong = createProgramFromFile(getAssetsPath() + "blinnphong.vert",
-                                  getAssetsPath() + "blinnphong.frag");
+  program_blinnphong = createProgramFromFile(
+      getAssetsPath() + "blinnphong.vert", getAssetsPath() + "blinnphong.frag");
+
+  program_blur = createProgramFromFile(getAssetsPath() + "blur.vert",
+                                       getAssetsPath() + "blur.frag");
 
   model.loadObj(getAssetsPath() + "bunny.obj");
 
@@ -57,6 +60,55 @@ void OpenGLWindow::initializeGL() {
   GLuint stars_program = createProgramFromFile(getAssetsPath() + "stars.vert",
                                                getAssetsPath() + "stars.frag");
   stars.initialize(stars_program);
+
+  glGenFramebuffers(1, &glowFBO);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glowFBO);
+  glGenTextures(2, &colorBuffers[0]);
+  for (unsigned int i = 0; i < 2; i++) {
+    glBindTexture(GL_TEXTURE_2D, colorBuffers.at(i));
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, viewport_width, viewport_height,
+                 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // attach texture to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
+                           GL_TEXTURE_2D, colorBuffers.at(i), 0);
+  }
+  GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+  if (status != GL_FRAMEBUFFER_COMPLETE) {
+    fmt::print("Error creating FBO");
+    exit(EXIT_FAILURE);
+  }
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+  std::array<glm::vec2, 4> positions{
+      glm::vec2{+1, +1},
+      glm::vec2{+1, -1},
+      glm::vec2{-1, -1},
+      glm::vec2{-1, +1},
+  };
+
+  abcg::glGenBuffers(1, &blur_vbo);
+  abcg::glBindBuffer(GL_ARRAY_BUFFER, blur_vbo);
+  abcg::glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions.data(),
+                     GL_STATIC_DRAW);
+  abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // Create VAO
+  abcg::glGenVertexArrays(1, &blur_vao);
+
+  // Bind vertex attributes to current VAO
+  abcg::glBindVertexArray(blur_vao);
+
+  abcg::glEnableVertexAttribArray(0);
+  abcg::glBindBuffer(GL_ARRAY_BUFFER, blur_vbo);
+  abcg::glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // End of binding to current VAO
+  abcg::glBindVertexArray(0);
 }
 
 void OpenGLWindow::loadModel(std::string_view path) {
@@ -81,6 +133,81 @@ void OpenGLWindow::paintGL() {
   abcg::glUseProgram(program);
   abcg::glFrontFace(GL_CCW);
 
+  /* GLOW */
+  abcg::glUseProgram(program);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glowFBO);
+  glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+  abcg::glClearColor(0, 0, 0, 0);
+  abcg::glClear(GL_COLOR_BUFFER_BIT);
+  ground.paint();
+
+  abcg::glUseProgram(program_blur);
+  glBindVertexArray(blur_vao);
+
+  const auto ul_blur_direction =
+      abcg::glGetUniformLocation(program_blur, "blurDirection");
+
+  // FIRST BLUE 0 -> 1
+  glDrawBuffer(GL_COLOR_ATTACHMENT1);
+  glBindTexture(GL_TEXTURE_2D, colorBuffers.at(0));
+  abcg::glUniform2f(ul_blur_direction, 1, 0);
+  abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  // SECOND BLUR 1 -> 0
+  glDrawBuffer(GL_COLOR_ATTACHMENT0);
+  glBindTexture(GL_TEXTURE_2D, colorBuffers.at(1));
+  abcg::glUniform2f(ul_blur_direction, 0, 1);
+  abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  // THIRD BLUR 0 -> 1
+  glDrawBuffer(GL_COLOR_ATTACHMENT1);
+  glBindTexture(GL_TEXTURE_2D, colorBuffers.at(0));
+  abcg::glUniform2f(ul_blur_direction, 1, 0);
+  abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  //   /* SECOND BLUR 1 -> 0 */
+  // glDrawBuffer(GL_COLOR_ATTACHMENT0);
+  // glBindTexture(GL_TEXTURE_2D, colorBuffers.at(1));
+  // abcg::glUniform2f(ul_blur_direction, 0, 1);
+  // abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  // /* THIRD BLUR 0 -> 1 */
+  // glDrawBuffer(GL_COLOR_ATTACHMENT1);
+  // glBindTexture(GL_TEXTURE_2D, colorBuffers.at(0));
+  // abcg::glUniform2f(ul_blur_direction, 1, 0);
+  // abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  //   /* SECOND BLUR 1 -> 0 */
+  // glDrawBuffer(GL_COLOR_ATTACHMENT0);
+  // glBindTexture(GL_TEXTURE_2D, colorBuffers.at(1));
+  // abcg::glUniform2f(ul_blur_direction, 0, 1);
+  // abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  // /* THIRD BLUR 0 -> 1 */
+  // glDrawBuffer(GL_COLOR_ATTACHMENT1);
+  // glBindTexture(GL_TEXTURE_2D, colorBuffers.at(0));
+  // abcg::glUniform2f(ul_blur_direction, 1, 0);
+  // abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  // LAST BUFFER 1 -> SCREEN //
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  glDrawBuffer(GL_BACK_LEFT);
+  abcg::glUniform2f(ul_blur_direction, 0, 1);
+  //abcg::glClearColor(0.055f, 0.145f, 0.306f, 1.0f);
+   abcg::glClearColor(0.113f, 0.070f, 0.196f, 1);
+  abcg::glClear(GL_COLOR_BUFFER_BIT);
+  glBindTexture(GL_TEXTURE_2D, colorBuffers.at(1));
+  glEnable(GL_BLEND);
+  abcg::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  glBindVertexArray(0);
+  glDisable(GL_BLEND);
+
+  /* END GLOW */
+  abcg::glUseProgram(program);
+
   ul_view_matrix = abcg::glGetUniformLocation(program, "viewMatrix");
   ul_proj_matrix = abcg::glGetUniformLocation(program, "projMatrix");
   ul_model_matrix = abcg::glGetUniformLocation(program, "modelMatrix");
@@ -104,7 +231,7 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform1f(ul_shadow_range, 100);
 
   sun.paint();
-  ground.paint();
+  // ground.paint();
 
   abcg::glUseProgram(0);
 
@@ -160,7 +287,8 @@ void OpenGLWindow::paintGL() {
 
   ul_view_matrix = abcg::glGetUniformLocation(program_blinnphong, "viewMatrix");
   ul_proj_matrix = abcg::glGetUniformLocation(program_blinnphong, "projMatrix");
-  ul_model_matrix = abcg::glGetUniformLocation(program_blinnphong, "modelMatrix");
+  ul_model_matrix =
+      abcg::glGetUniformLocation(program_blinnphong, "modelMatrix");
   ul_normal_matrix =
       abcg::glGetUniformLocation(program_blinnphong, "normalMatrix");
   ul_light_dir =
@@ -215,6 +343,12 @@ void OpenGLWindow::paintGL() {
 void OpenGLWindow::resizeGL(int width, int height) {
   viewport_width = width;
   viewport_height = height;
+  for (unsigned int i = 0; i < 2; i++) {
+    glBindTexture(GL_TEXTURE_2D, colorBuffers.at(i));
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, viewport_width, viewport_height,
+                 0, GL_RGBA, GL_FLOAT, nullptr);
+  }
+  glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void OpenGLWindow::terminateGL() {

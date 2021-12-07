@@ -27,9 +27,15 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   GLuint program{};
   GLuint program_texture{};
   GLuint program_blinnphong{};
+  GLuint program_blur{};
 
-  int viewport_width{};
-  int viewport_height{};
+  GLuint blur_vbo{};
+  GLuint blur_vao{};
+  GLuint glowFBO;
+  std::array<GLuint, 2> colorBuffers;
+
+  int viewport_width{1024};
+  int viewport_height{576};
 
   Car car;
   Sun sun;
