@@ -26,6 +26,7 @@ class OpenGLWindow : public abcg::OpenGLWindow {
  private:
   GLuint program{};
   GLuint program_texture{};
+  GLuint program_blinnphong{};
 
   int viewport_width{};
   int viewport_height{};

@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
                                .showFullscreenButton = false,
                                .title = "Synthwave Drive"});
 
+    // SDL_SetWindowResizable(window, false);
     app.run(std::move(window));
   } catch (const abcg::Exception &exception) {
     fmt::print(stderr, "{}\n", exception.what());

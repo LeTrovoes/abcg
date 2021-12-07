@@ -41,9 +41,12 @@ void OpenGLWindow::initializeGL() {
   program = createProgramFromFile(getAssetsPath() + "depth.vert",
                                   getAssetsPath() + "depth.frag");
 
+  program_blinnphong = createProgramFromFile(getAssetsPath() + "blinnphong.vert",
+                                  getAssetsPath() + "blinnphong.frag");
+
   model.loadObj(getAssetsPath() + "bunny.obj");
 
-  model.setupVAO(program);
+  model.setupVAO(program_blinnphong);
   sun.initialize(program);
   ground.initialize(program);
 
@@ -97,16 +100,6 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform1f(ul_shadow_offset, -5);
   abcg::glUniform1f(ul_shadow_range, 1.3);
 
-  abcg::glFrontFace(GL_CW);
-  abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE,
-                           &modelMatrixRight[0][0]);
-  model.render();
-
-  abcg::glFrontFace(GL_CCW);
-  abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE,
-                           &modelMatrixLeft[0][0]);
-  model.render();
-
   abcg::glUniform1f(ul_shadow_offset, 0);
   abcg::glUniform1f(ul_shadow_range, 100);
 
@@ -143,8 +136,7 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform1i(ul_diffuseTex, 0);
   abcg::glUniform1i(ul_mappingMode, 3);
 
-  const auto lightDirRotated =
-      glm::vec4(0, -0.775f, 1.548f, 0);
+  auto lightDirRotated = glm::vec4(0, -0.775f, 1.548f, 0);
   abcg::glUniform4fv(ul_light_dir, 1, &lightDirRotated.x);
   abcg::glUniform4fv(ul_Ia, 1, &m_Ia.x);
   abcg::glUniform4fv(ul_Id, 1, &m_Id.x);
@@ -153,7 +145,7 @@ void OpenGLWindow::paintGL() {
   // Set uniform variables of the current object
   abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE, &modelMatrixCar[0][0]);
 
-  const auto modelViewMatrix{glm::mat3(viewMatrix * modelMatrixCar)};
+  auto modelViewMatrix{glm::mat3(viewMatrix * modelMatrixCar)};
   glm::mat3 normalMatrix{glm::inverseTranspose(modelViewMatrix)};
   abcg::glUniformMatrix3fv(ul_normal_matrix, 1, GL_FALSE, &normalMatrix[0][0]);
 
@@ -163,6 +155,59 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform4fv(ul_Ks, 1, &m_Ks.x);
 
   car.render();
+
+  abcg::glUseProgram(program_blinnphong);
+
+  ul_view_matrix = abcg::glGetUniformLocation(program_blinnphong, "viewMatrix");
+  ul_proj_matrix = abcg::glGetUniformLocation(program_blinnphong, "projMatrix");
+  ul_model_matrix = abcg::glGetUniformLocation(program_blinnphong, "modelMatrix");
+  ul_normal_matrix =
+      abcg::glGetUniformLocation(program_blinnphong, "normalMatrix");
+  ul_light_dir =
+      abcg::glGetUniformLocation(program_blinnphong, "lightDirWorldSpace");
+  ul_shininess = abcg::glGetUniformLocation(program_blinnphong, "shininess");
+  ul_Ia = abcg::glGetUniformLocation(program_blinnphong, "Ia");
+  ul_Id = abcg::glGetUniformLocation(program_blinnphong, "Id");
+  ul_Is = abcg::glGetUniformLocation(program_blinnphong, "Is");
+  ul_Ka = abcg::glGetUniformLocation(program_blinnphong, "Ka");
+  ul_Kd = abcg::glGetUniformLocation(program_blinnphong, "Kd");
+  ul_Ks = abcg::glGetUniformLocation(program_blinnphong, "Ks");
+
+  const auto kA = glm::vec4(0, 0, 0, 0);
+  const auto kD = glm::vec4(1, 1, 1, 0);
+  const auto kS = glm::vec4(1, 1, 1, 0);
+  abcg::glUniform4fv(ul_Ka, 1, &kA.x);
+  abcg::glUniform4fv(ul_Kd, 1, &kD.x);
+  abcg::glUniform4fv(ul_Ks, 1, &kS.x);
+
+  abcg::glUniform4fv(ul_Ia, 1, &kA.x);
+  abcg::glUniform4fv(ul_Id, 1, &kD.x);
+  abcg::glUniform4fv(ul_Is, 1, &kS.x);
+
+  abcg::glUniform1f(ul_shininess, m_shininess);
+
+  // lightDirRotated = glm::vec4(0.23991199, -0.6852303, -1.5725459, 0);
+  lightDirRotated = glm::vec4(-1, -1, -1, 0);
+  abcg::glUniform4fv(ul_light_dir, 1, &lightDirRotated.x);
+
+  abcg::glUniformMatrix4fv(ul_proj_matrix, 1, GL_FALSE, &projMatrix[0][0]);
+  abcg::glUniformMatrix4fv(ul_view_matrix, 1, GL_FALSE, &viewMatrix[0][0]);
+
+  abcg::glFrontFace(GL_CW);
+  abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE,
+                           &modelMatrixRight[0][0]);
+  modelViewMatrix = glm::mat3(viewMatrix * modelMatrixRight);
+  normalMatrix = glm::inverseTranspose(modelViewMatrix);
+  abcg::glUniformMatrix3fv(ul_normal_matrix, 1, GL_FALSE, &normalMatrix[0][0]);
+  model.render();
+
+  abcg::glFrontFace(GL_CCW);
+  abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE,
+                           &modelMatrixLeft[0][0]);
+  modelViewMatrix = glm::mat3(viewMatrix * modelMatrixLeft);
+  normalMatrix = glm::inverseTranspose(modelViewMatrix);
+  abcg::glUniformMatrix3fv(ul_normal_matrix, 1, GL_FALSE, &normalMatrix[0][0]);
+  model.render();
 
   abcg::glUseProgram(0);
 }
@@ -194,11 +239,11 @@ void OpenGLWindow::update() {
 
   const auto aspect{static_cast<float>(viewport_width) /
                     static_cast<float>(viewport_height)};
-  float dist = fmax(aspect * 1.90f, 2.0f);
+  float dist = fmax(aspect * 1.5f, 1.0f);
 
   modelMatrixRight = glm::mat4{1};
   modelMatrixRight =
-      glm::translate(modelMatrixRight, glm::vec3(dist, 2.0f, -2.0f));
+      glm::translate(modelMatrixRight, glm::vec3(dist, 1.0f, -2.0f));
   modelMatrixRight =
       glm::rotate(modelMatrixRight, static_cast<float>(2 * M_PI - rotation),
                   glm::vec3(0, 1, 0));
@@ -206,13 +251,12 @@ void OpenGLWindow::update() {
 
   modelMatrixLeft = glm::mat4{1};
   modelMatrixLeft =
-      glm::translate(modelMatrixLeft, glm::vec3(-dist, 2.0f, -2.0f));
+      glm::translate(modelMatrixLeft, glm::vec3(-dist, 1.0f, -2.0f));
   modelMatrixLeft = glm::rotate(modelMatrixLeft, rotation, glm::vec3(0, 1, 0));
 
   viewMatrix =
       glm::lookAt(glm::vec3(0.0f, 0.7f, 2.5f), glm::vec3(0.0f, 0.9f, 0),
                   glm::vec3(0.0f, 1.0f, 0.0f));
-
 
   if (input[static_cast<size_t>(Input::Left)]) {
     car_position -= deltaTime * 1;
@@ -227,7 +271,8 @@ void OpenGLWindow::update() {
 
   modelMatrixCar = glm::mat4{1};
   // glm::scale(modelMatrixCar, glm::vec3(2));
-  modelMatrixCar = glm::translate(modelMatrixCar, glm::vec3(car_position, 0.25f, 0.0f));
+  modelMatrixCar =
+      glm::translate(modelMatrixCar, glm::vec3(car_position, 0.25f, 0.0f));
   modelMatrixCar =
       glm::rotate(modelMatrixCar, static_cast<float>(M_PI), glm::vec3(0, 1, 0));
 }
