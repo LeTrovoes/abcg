@@ -13,7 +13,7 @@
 
 enum class Input { Right, Left };
 
-using PlayerInput = std::bitset<2>;  // [fire, left]
+using PlayerInput = std::bitset<2>;
 
 class OpenGLWindow : public abcg::OpenGLWindow {
  protected:
@@ -33,6 +33,9 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   GLuint blur_vao{};
   GLuint glowFBO;
   std::array<GLuint, 2> colorBuffers;
+
+  GLuint intermediateFBO;
+  GLuint intermediateTexture;
 
   int viewport_width{1024};
   int viewport_height{576};
@@ -62,13 +65,11 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   GLint ul_shadow_range{};
   GLint ul_shadow_offset{};
 
-  glm::mat4 modelMatrixRight{1.0f};
-  glm::mat4 modelMatrixLeft{1.0f};
   glm::mat4 modelMatrixCar{1.0f};
   glm::mat4 viewMatrix{1.0f};
   glm::mat4 projMatrix{1.0f};
 
-  float rotation{0};
+  std::vector<glm::mat4> palmTreeModelMatrixes;
 
   float car_position{0};
 

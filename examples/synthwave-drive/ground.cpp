@@ -39,6 +39,7 @@ void Ground::paint() {
 
     glm::mat4 model{1.0f};
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, translation));
+    model = glm::rotate(model, glm::radians(10.f), glm::vec3(1,0,0));
     abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE, &model[0][0]);
 
     abcg::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -94,8 +95,8 @@ void Ground::initializePlane(GLuint program) {
 
 void Ground::initializeGrid(GLuint program) {
   std::array line_vertices{
-      glm::vec3(-30.0f, 0.01f, 0.02f), glm::vec3(30.0f, 0.01f, 0.02f),
-      glm::vec3(-30.0f, 0.01f, -0.02f), glm::vec3(30.0f, 0.01f, -0.02f)};
+      glm::vec3(-30.0f, 0.01f, 0.03f), glm::vec3(30.0f, 0.01f, 0.03f),
+      glm::vec3(-30.0f, 0.01f, -0.03f), glm::vec3(30.0f, 0.01f, -0.03f)};
 
   abcg::glGenBuffers(1, &grid_vbo);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, grid_vbo);
