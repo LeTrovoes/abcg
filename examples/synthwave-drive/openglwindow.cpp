@@ -14,7 +14,6 @@
 #include "core.h"
 
 void OpenGLWindow::handleEvent(SDL_Event &event) {
-  // Keyboard events
   if (event.type == SDL_KEYDOWN) {
     if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_a)
       input.set(static_cast<size_t>(Input::Left));
@@ -61,7 +60,7 @@ void OpenGLWindow::initializeGL() {
                                                getAssetsPath() + "stars.frag");
   stars.initialize(stars_program);
 
-  /* INTERMEDIARIO */
+  /* Intermediate framebuffer object */
   glGenFramebuffers(1, &intermediateFBO);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
   glGenTextures(1, &intermediateTexture);
@@ -73,17 +72,16 @@ void OpenGLWindow::initializeGL() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  // attach texture to framebuffer
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                          intermediateTexture, 0);
-  GLenum status1 = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
-  if (status1 != GL_FRAMEBUFFER_COMPLETE) {
-    fmt::print("Error creating FBO");
+  GLenum fbo_status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+  if (fbo_status != GL_FRAMEBUFFER_COMPLETE) {
+    fmt::print("Error creating intermediate FBO");
     exit(EXIT_FAILURE);
   }
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-  /* GLOW */
+  /* Glow framebuffer object with MSAA */
   glGenFramebuffers(1, &glowFBO);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glowFBO);
   glGenTextures(2, &colorBuffers[0]);
@@ -95,9 +93,9 @@ void OpenGLWindow::initializeGL() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
                            GL_TEXTURE_2D_MULTISAMPLE, colorBuffers.at(i), 0);
   }
-  GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
-  if (status != GL_FRAMEBUFFER_COMPLETE) {
-    fmt::print("Error creating FBO");
+  fbo_status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+  if (fbo_status != GL_FRAMEBUFFER_COMPLETE) {
+    fmt::print("Error creating glow FBO");
     exit(EXIT_FAILURE);
   }
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -115,22 +113,16 @@ void OpenGLWindow::initializeGL() {
                      GL_STATIC_DRAW);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  // Create VAO
   abcg::glGenVertexArrays(1, &blur_vao);
-
-  // Bind vertex attributes to current VAO
   abcg::glBindVertexArray(blur_vao);
 
   abcg::glEnableVertexAttribArray(0);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, blur_vbo);
   abcg::glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  // End of binding to current VAO
   abcg::glBindVertexArray(0);
 
-  /* PALM TREES */
-  // 2.7f, 1.0f, -5.0f
+  // palm tree model matrices
   for (int i = 0; i < 10; i++) {
     float x = i % 2 == 0 ? -2.7f : 2.7f;
     float z = -9.0f + 2.0f * static_cast<float>(i / 2);
@@ -147,7 +139,6 @@ void OpenGLWindow::loadModel(std::string_view path) {
   car.loadObj(path);
   car.setupVAO(program_texture);
 
-  // Use material properties from the loaded model
   m_Ka = car.getKa();
   m_Kd = car.getKd();
   m_Ks = car.getKs();
@@ -161,7 +152,7 @@ void OpenGLWindow::paintGL() {
   abcg::glUseProgram(program);
   abcg::glFrontFace(GL_CCW);
 
-  /* GLOW */
+  /* Glow Effect */
   abcg::glUseProgram(program);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glowFBO);
   glDrawBuffer(GL_COLOR_ATTACHMENT0);
@@ -170,7 +161,7 @@ void OpenGLWindow::paintGL() {
   abcg::glClear(GL_COLOR_BUFFER_BIT);
   ground.paint();
 
-  // GLOW 0 -> INTERMEDIATE
+  // glow 0 -> intermediate
   glBindFramebuffer(GL_READ_FRAMEBUFFER, glowFBO);
   glReadBuffer(GL_COLOR_ATTACHMENT0);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
@@ -183,14 +174,14 @@ void OpenGLWindow::paintGL() {
   const auto ul_blur_direction =
       abcg::glGetUniformLocation(program_blur, "blurDirection");
 
-  // INTERMEDIATE -> GLOW 1
+  // intermediate -> glow 1
   glBindFramebuffer(GL_FRAMEBUFFER, glowFBO);
   glDrawBuffer(GL_COLOR_ATTACHMENT1);
   glBindTexture(GL_TEXTURE_2D, intermediateTexture);
   abcg::glUniform2f(ul_blur_direction, 1, 0);
   abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-  // COPY TO NON MA FBO
+  // glow 1 -> intermediate
   glBindFramebuffer(GL_READ_FRAMEBUFFER, glowFBO);
   glReadBuffer(GL_COLOR_ATTACHMENT1);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
@@ -198,11 +189,10 @@ void OpenGLWindow::paintGL() {
                     viewport_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 
-  // LAST BUFFER 1 -> SCREEN //
+  // intermediate 1 -> screen
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glDrawBuffer(GL_BACK_LEFT);
   abcg::glUniform2f(ul_blur_direction, 1, 0);
-  // abcg::glClearColor(0.055f, 0.145f, 0.306f, 1.0f);
   abcg::glClearColor(0.113f, 0.070f, 0.196f, 1);
   abcg::glClear(GL_COLOR_BUFFER_BIT);
   glBindTexture(GL_TEXTURE_2D, intermediateTexture);
@@ -212,10 +202,12 @@ void OpenGLWindow::paintGL() {
 
   glBindVertexArray(0);
   glDisable(GL_BLEND);
+  /* End Glow Effect */
 
-  /* END GLOW */
+  /* Scene objects */
   abcg::glUseProgram(program);
 
+  // Get location of uniform variables for default program
   ul_view_matrix = abcg::glGetUniformLocation(program, "viewMatrix");
   ul_proj_matrix = abcg::glGetUniformLocation(program, "projMatrix");
   ul_model_matrix = abcg::glGetUniformLocation(program, "modelMatrix");
@@ -244,10 +236,12 @@ void OpenGLWindow::paintGL() {
 
   stars.paint(&viewMatrix, &projMatrix);
   gradient.paint(&viewMatrix, &projMatrix);
+  /* End scene objects */
 
+  /* Car */
   abcg::glUseProgram(program_texture);
 
-  // Get location of uniform variables
+  // Get location of uniform variables for texture program
   ul_view_matrix = abcg::glGetUniformLocation(program_texture, "viewMatrix");
   ul_proj_matrix = abcg::glGetUniformLocation(program_texture, "projMatrix");
   ul_model_matrix = abcg::glGetUniformLocation(program_texture, "modelMatrix");
@@ -276,7 +270,6 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform4fv(ul_Id, 1, &m_Id.x);
   abcg::glUniform4fv(ul_Is, 1, &m_Is.x);
 
-  // Set uniform variables of the current object
   abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE, &modelMatrixCar[0][0]);
 
   auto modelViewMatrix{glm::mat3(viewMatrix * modelMatrixCar)};
@@ -289,7 +282,9 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform4fv(ul_Ks, 1, &m_Ks.x);
 
   car.render();
+  /* End car */
 
+  /* Palm trees */
   abcg::glUseProgram(program_blinnphong);
 
   ul_view_matrix = abcg::glGetUniformLocation(program_blinnphong, "viewMatrix");
@@ -308,12 +303,9 @@ void OpenGLWindow::paintGL() {
   ul_Kd = abcg::glGetUniformLocation(program_blinnphong, "Kd");
   ul_Ks = abcg::glGetUniformLocation(program_blinnphong, "Ks");
 
-  const auto kA = glm::vec4(0, 0, 0, 0);
-  const auto kD = glm::vec4(0.473f, 0.192f, 0.054f, 0);
-  const auto kS = glm::vec4(0.861f, 0.438f, 0.044f, 0);
-  abcg::glUniform4fv(ul_Ka, 1, &kA.x);
-  abcg::glUniform4fv(ul_Kd, 1, &kD.x);
-  abcg::glUniform4fv(ul_Ks, 1, &kS.x);
+  abcg::glUniform4f(ul_Ka, 0, 0, 0, 0);
+  abcg::glUniform4f(ul_Kd, 0.473f, 0.192f, 0.054f, 0);
+  abcg::glUniform4f(ul_Ks, 0.861f, 0.438f, 0.044f, 0);
 
   abcg::glUniform4fv(ul_Ia, 1, &m_Ia.x);
   abcg::glUniform4fv(ul_Id, 1, &m_Id.x);
@@ -336,6 +328,7 @@ void OpenGLWindow::paintGL() {
                              &normalMatrix[0][0]);
     model.render();
   }
+  /* End palm trees */
 
   abcg::glUseProgram(0);
 }
@@ -361,6 +354,7 @@ void OpenGLWindow::resizeGL(int width, int height) {
 
 void OpenGLWindow::terminateGL() {
   sun.terminate();
+  car.terminateGL();
   stars.terminate();
   model.terminateGL();
   ground.terminate();
