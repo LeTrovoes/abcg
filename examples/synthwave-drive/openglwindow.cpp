@@ -84,15 +84,24 @@ void OpenGLWindow::initializeGL() {
   /* Glow framebuffer object with MSAA */
   glGenFramebuffers(1, &glowFBO);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glowFBO);
-  glGenTextures(2, &colorBuffers[0]);
-  for (unsigned int i = 0; i < 2; i++) {
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorBuffers.at(i));
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 16, GL_RGBA16F,
-                            viewport_width, viewport_height, GL_TRUE);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
-                           GL_TEXTURE_2D_MULTISAMPLE, colorBuffers.at(i), 0);
-  }
+  glGenTextures(1, &glowTexture);
+
+#if defined(__EMSCRIPTEN__)
+  glBindTexture(GL_TEXTURE_2D, glowTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, viewport_width, viewport_height, 0,
+               GL_RGBA, GL_FLOAT, nullptr);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         glowTexture, 0);
+#else
+  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, glowTexture);
+  glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 16, GL_RGBA16F,
+                          viewport_width, viewport_height, GL_TRUE);
+  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                         GL_TEXTURE_2D_MULTISAMPLE, glowTexture, 0);
+#endif
+
   fbo_status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
   if (fbo_status != GL_FRAMEBUFFER_COMPLETE) {
     fmt::print("Error creating glow FBO");
@@ -155,7 +164,6 @@ void OpenGLWindow::paintGL() {
   /* Glow Effect */
   abcg::glUseProgram(program);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glowFBO);
-  glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
   abcg::glClearColor(0, 0, 0, 0);
   abcg::glClear(GL_COLOR_BUFFER_BIT);
@@ -163,7 +171,6 @@ void OpenGLWindow::paintGL() {
 
   // glow 0 -> intermediate
   glBindFramebuffer(GL_READ_FRAMEBUFFER, glowFBO);
-  glReadBuffer(GL_COLOR_ATTACHMENT0);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
   glBlitFramebuffer(0, 0, viewport_width, viewport_height, 0, 0, viewport_width,
                     viewport_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -176,22 +183,18 @@ void OpenGLWindow::paintGL() {
 
   // intermediate -> glow 1
   glBindFramebuffer(GL_FRAMEBUFFER, glowFBO);
-  glDrawBuffer(GL_COLOR_ATTACHMENT1);
   glBindTexture(GL_TEXTURE_2D, intermediateTexture);
   abcg::glUniform2f(ul_blur_direction, 1, 0);
   abcg::glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
   // glow 1 -> intermediate
   glBindFramebuffer(GL_READ_FRAMEBUFFER, glowFBO);
-  glReadBuffer(GL_COLOR_ATTACHMENT1);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
   glBlitFramebuffer(0, 0, viewport_width, viewport_height, 0, 0, viewport_width,
                     viewport_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-
   // intermediate 1 -> screen
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-  glDrawBuffer(GL_BACK_LEFT);
   abcg::glUniform2f(ul_blur_direction, 1, 0);
   abcg::glClearColor(0.113f, 0.070f, 0.196f, 1);
   abcg::glClear(GL_COLOR_BUFFER_BIT);
@@ -318,7 +321,8 @@ void OpenGLWindow::paintGL() {
   for (const auto index :
        iter::range(0, static_cast<int>(palmTreeModelMatrixes.size()))) {
     float side = index % 2 == 0 ? -1 : 1;
-    lightDirRotated = glm::vec4(1.5704777f * side, -0.66469157f, -0.3029458f, 0);
+    lightDirRotated =
+        glm::vec4(1.5704777f * side, -0.66469157f, -0.3029458f, 0);
     abcg::glUniform4fv(ul_light_dir, 1, &lightDirRotated.x);
     auto modelMatrix = palmTreeModelMatrixes.at(index);
     abcg::glUniformMatrix4fv(ul_model_matrix, 1, GL_FALSE, &modelMatrix[0][0]);
@@ -337,13 +341,18 @@ void OpenGLWindow::resizeGL(int width, int height) {
   viewport_width = width;
   viewport_height = height;
 
-  // resize textures used in glow fbo
-  for (unsigned int i = 0; i < 2; i++) {
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorBuffers.at(i));
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 16, GL_RGBA16F,
-                            viewport_width, viewport_height, GL_TRUE);
-  }
+  // resize texture used in glow fbo
+#if defined(__EMSCRIPTEN__)
+  glBindTexture(GL_TEXTURE_2D, glowTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, viewport_width, viewport_height, 0,
+               GL_RGBA, GL_FLOAT, nullptr);
+  glBindTexture(GL_TEXTURE_2D, 0);
+#else
+  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, glowTexture);
+  glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 16, GL_RGBA16F,
+                          viewport_width, viewport_height, GL_TRUE);
   glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+#endif
 
   // resize texture used in intermediate fbo
   glBindTexture(GL_TEXTURE_2D, intermediateTexture);
